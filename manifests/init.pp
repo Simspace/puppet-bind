@@ -66,7 +66,7 @@
 #
 class bind
 {
-  package{ ['bind', 'bind-utils', 'bind-chroot']:
+  package{ ['bind9']:
     ensure => present,
   }
 
