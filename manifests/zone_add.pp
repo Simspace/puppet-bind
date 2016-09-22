@@ -20,6 +20,7 @@
 #
 define bind::zone_add (
   $ttl          = 3600,
+  $type		= undef,
   $refresh      = 10800,
   $retry        = 3600,
   $expire       = 604800,
@@ -30,10 +31,7 @@ define bind::zone_add (
   $nameservers  = undef,
 ) {
 
-  # Get type of server slave or master
-  $type_data = $::bind::bind_domains[$name]['type']
-
-  if $type_data == 'master' {
+  if $type == 'master' {
     # Check if this is a reverse zone
     if $name =~ /^(\d+).*arpa$/ {
       bind::ptr_zone { $name:

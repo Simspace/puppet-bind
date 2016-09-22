@@ -12,5 +12,5 @@ $TTL <%= @ttl -%>
       NS   <%=  n %>.
 <% end %>
 <% @add_ptr_zone.each do |key,value| -%>
-<%= value.split('.')[3] -%>    IN    PTR    <%= key -%>.
+<%= key -%>    IN    PTR    <%= value -%>.
 <% end -%>

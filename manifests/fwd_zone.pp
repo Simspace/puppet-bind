@@ -28,7 +28,8 @@ define bind::fwd_zone (
   validate_hash($cname_data)
 
   # Use custom function to query external source for names and IP addresses.
-  $add_zone = parsejson(dns_array($::bind::data_src, $::bind::data_name, $::bind::data_key, $name))
+  $add_zone = []
+  #$add_zone = parsejson(dns_array($::bind::data_src, $::bind::data_name, $::bind::data_key, $name))
   if $add_zone == [] {
     $clean_zone = {}
   }
@@ -40,10 +41,10 @@ define bind::fwd_zone (
   $merged_zone = merge($clean_zone, $cname_data)
   validate_hash($merged_zone)
 
-  file{ "/var/named/zone_${name}":
+  file{ "/var/cache/bind/zone_${name}":
     ensure  => present,
     owner   => root,
-    group   => named,
+    group   => bind,
     mode    => '0640',
     content => template('bind/fwd_zone_file.erb'),
     notify  => Exec["update_zone${name}"],
@@ -53,14 +54,14 @@ define bind::fwd_zone (
   exec{"update_zone${name}":
     refreshonly => true,
     path        => '/bin',
-    command     => "sed -e \"s/serialnumber/`date +%y%m%d%H%M`/g\" /var/named/zone_${name} > /var/named/zone_${name}.db",
+    command     => "sed -e \"s/serialnumber/`date +%y%m%d%H%M`/g\" /var/cache/bind/zone_${name} > /var/cache/bind/zone_${name}.db",
     notify      => Exec["zone_compile${name}"],
   }
 
   # Here the zone is compiled to verify good data
   exec{"zone_compile${name}":
     refreshonly => true,
-    command     => "/usr/sbin/named-compilezone -o /var/named/data/zone_${name} ${name} /var/named/zone_${name}.db",
+    command     => "/usr/sbin/named-compilezone -o /var/cache/bind/zone_${name} ${name} /var/cache/bind/zone_${name}.db",
     notify      => Exec['zone_reload'],
   }
 

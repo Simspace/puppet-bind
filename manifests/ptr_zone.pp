@@ -22,6 +22,10 @@ define bind::ptr_zone (
   $negresp = 300,
 ) {
 
+  # PTR data from hiera
+  $ptr_data = pick($::bind::bind_zones[$name][data], {})
+  validate_hash($ptr_data)
+
   # Check if we are working with something other than a class C subnet.
   if $cidrsize != 24 {
     $subs = inline_template('<%= @name.chomp(".in-addr.arpa").split(".").reverse.join(".").concat(".0/") %>')
@@ -39,12 +43,13 @@ define bind::ptr_zone (
   } else {
 
     $ptr_zone = inline_template('<%= @name.chomp(".in-addr.arpa").split(".").reverse.join(".").concat(".0")  %>')
-    $add_ptr_zone = parsejson(dns_array($::bind::data_src, $::bind::data_name, $::bind::data_key, $ptr_zone))
+    #$add_ptr_zone = parsejson(dns_array($::bind::data_src, $::bind::data_name, $::bind::data_key, $ptr_zone))
+    $add_ptr_zone = $ptr_data
 
-    file{ "/var/named/zone_${name}":
+    file{ "/var/cache/bind/zone_${name}":
       ensure  => present,
       owner   => root,
-      group   => named,
+      group   => bind,
       mode    => '0640',
       content => template('bind/ptr_zone_file.erb'),
       notify  => Exec["update_zone${name}"],
@@ -54,14 +59,14 @@ define bind::ptr_zone (
     exec{"update_zone${name}":
       refreshonly => true,
       path        => '/bin',
-      command     => "sed -e \"s/serialnumber/`date +%y%m%d%H%M`/g\" /var/named/zone_${name} > /var/named/zone_${name}.db",
+      command     => "sed -e \"s/serialnumber/`date +%y%m%d%H%M`/g\" /var/cache/bind/zone_${name} > /var/cache/bind/zone_${name}.db",
       notify      => Exec["zone_compile${name}"],
     }
 
     # Here the zone is compiled to verify good data
     exec{"zone_compile${name}":
       refreshonly => true,
-      command     => "/usr/sbin/named-compilezone -o /var/named/data/zone_${name} ${name} /var/named/zone_${name}.db",
+      command     => "/usr/sbin/named-compilezone -o /var/cache/bind/zone_${name} ${name} /var/cache/bind/zone_${name}.db",
       notify      => Exec['zone_reload'],
     }
   }

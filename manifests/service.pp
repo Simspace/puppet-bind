@@ -16,7 +16,10 @@
 #
 
 class bind::service (
+  $acls              = {},
   $forwarders        = [],
+  $listen            = [],
+  $hint              = false,
   $maxrefreshtime    = undef,
   $minrefreshtime    = undef,
   $recursion         = undef,
@@ -24,16 +27,19 @@ class bind::service (
   $dnssec_validation = yes,
   $zone_notify       = undef,
 ) {
+  validate_hash($acls)
   validate_array($forwarders)
+  validate_array($listen)
+  validate_bool($hint)
 
-  $bind_domains = hiera_hash('bind::domains')
-  $acls = hiera('bind::acls')
+#  $acls = hiera('bind::acls')
+  $bind_zones = hiera('bind::zones')
 
   case $::operatingsystemmajrelease {
-    '6': {
-      $restartcommand = '/usr/sbin/named-checkconf -z && /etc/init.d/named restart'
-      $reloadcommand = '/usr/sbin/named-checkconf -z && /etc/init.d/named reload'
-      $service_name = 'named'
+    '14.04': {
+      $restartcommand = '/usr/sbin/named-checkconf -z && /usr/sbin/service bind9 restart'
+      $reloadcommand = '/usr/sbin/named-checkconf -z && /usr/sbin/service bind9 reload'
+      $service_name = 'bind9'
     }
     '7': {
       $restartcommand = '/usr/sbin/named-checkconf -z && /usr/bin/systemctl restart named-chroot'
@@ -54,14 +60,22 @@ class bind::service (
     ensure    => running,
     enable    => true,
     hasstatus => true,
-    require   => File['/etc/named.conf'],
+    require   => File['/etc/bind/named.conf'],
   }
 
-  file{'/etc/named.conf':
+  file{'/var/log/named':
+    mode    => '0775',
+    owner   => root,
+    group   => bind,
+    ensure  => directory,
+  }
+
+  file{'/etc/bind/named.conf':
     mode    => '0640',
     owner   => root,
-    group   => named,
-    require => Package['bind', 'bind-chroot'],
+    group   => bind,
+#    require => Package['bind', 'bind-chroot'],
+    require => File['/var/log/named'],
     content => template('bind/named_conf.erb'),
     notify  => Exec['named_restart'],
   }

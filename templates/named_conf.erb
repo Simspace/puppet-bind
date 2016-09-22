@@ -11,15 +11,21 @@ acl <%= acl -%> {
   <%= value -%>;
 };
 
-<% end %>
+<% end -%>
 
 options {
-  listen-on port 53 { 127.0.0.1; <%= @ipaddress %>;};
-  directory "/var/named";
-  dump-file "/var/named/data/cache_dump.db";
-  statistics-file "/var/named/data/named_stats.txt";
-  memstatistics-file "/var/named/data/named_mem_stats.txt";
+<% if @listen.count > 0 -%>
+  listen-on port 53 { 127.0.0.1; <%= @listen.join('; ')-%>; };
+<% else -%>
+  listen-on port 53 { 127.0.0.1; <%= @ipaddress %>; };
+<% end -%>
+  directory "/var/cache/bind";
+  dump-file "cache_dump.db";
+  statistics-file "named_stats.txt";
+  memstatistics-file "named_mem_stats.txt";
+<% if @acls.count > 0 -%>
   allow-query { localhost; <% @acls.each do |acl,value| -%><%= acl -%>; <% end -%>};
+<% end -%>
 <% if @recursion -%>
   recursion <%= @recursion -%>;
 <% else -%>
@@ -43,26 +49,28 @@ options {
   version "None";
 
   /* Path to ISC DLV key */
-  bindkeys-file "/etc/named.iscdlv.key";
+  bindkeys-file "/etc/bind/bind.keys";
 
-  managed-keys-directory "/var/named/dynamic";
+  managed-keys-directory "/var/cache/bind";
 };
 
 logging {
   channel default_debug {
-    file "data/named.log";
+    file "/var/log/named/named.log";
     severity dynamic;
     print-time yes;
     };
     category lame-servers {null;};
 };
 
+<% if @hint -%>
 zone "." IN {
   type hint;
   file "named.ca";
 };
+<% end -%>
 
-<% @bind_domains.each_pair do |key, hash| -%>
+<% @bind_zones.each_pair do |key, hash| -%>
 <% if hash['cidr'] -%>
 <% cidrzone = key.chomp(".in-addr.arpa").split(".").reverse.join(".").concat(".0/#{hash['cidr']}") %>
 <% multizone = scope.function_cidr_zone([cidrzone]) -%>
@@ -81,7 +89,7 @@ zone  "<%= zone.chomp(".0/24").split(".").reverse.join(".").concat(".in-addr.arp
       allow-transfer {"none";};
       <% end -%>
     <% else -%>
-      file "data/zone_<%= zone.chomp(".0/24").split(".").reverse.join(".").concat(".in-addr.arpa") -%>";
+      file "zone_<%= zone.chomp(".0/24").split(".").reverse.join(".").concat(".in-addr.arpa") -%>";
       <% if hash['slave'] -%>
       allow-transfer { <%= hash['slave'].join(';') -%>;};
       <% if @zone_notify == 'explicit' -%>
@@ -108,7 +116,7 @@ zone  "<%= key %>" {
       allow-transfer {"none";};
       <% end -%>
     <% else -%>
-      file "data/zone_<%= key -%>";
+      file "zone_<%= key -%>";
       <% if hash['slave'] -%>
       allow-transfer { <%= hash['slave'].join(';') -%>;};
       <% if @zone_notify == 'explicit' -%>
@@ -122,5 +130,4 @@ zone  "<%= key %>" {
 <% end -%>
 <% end -%>
 
-include "/etc/named.rfc1912.zones";
-include "/etc/named.root.key";
+include "/etc/bind/zones.rfc1918";

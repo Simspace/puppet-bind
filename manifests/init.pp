@@ -14,28 +14,14 @@
 #
 # === Examples
 #
-# Hiera domain data
-# 
-#bind::domains:
-#  example.net:
-#    type: master
-#    slave:
-#      - 10.1.16.13
-#  16.1.10.in-addr.arpa:
-#    type: master
-#    slave:
-#      - 10.1.16.13
-#  0.1.10.in-addr.arpa:
-#    type: master
-#    CIDR: 22
-#    slave:
-#      - 10.1.16.13
-#
 # Hiera zone data
 #
 #bind::zones:
 #  example.net:
 #    ttl: 3600
+#    type: master
+#    slave:
+#      - 10.1.16.13
 #    nameservers:
 #      - ns1.example.net
 #      - ns2.example.net
@@ -46,13 +32,19 @@
 #      'sleep': pillow.other.net.
 #  16.1.10.in-addr.arpa:
 #    ttl: 3600
+#    type: master
+#    slave:
+#      - 10.1.16.13
 #    nameservers:
 #      - ns1.example.net
 #      - ns2.example.net
 #
 #  0.1.10.in-addr.arpa:
 #    ttl: 3600
+#    type: masster
 #    CIDR: 22
+#    slave:
+#      - 10.1.16.13
 #    nameservers:
 #      - ns1.example.net
 #      - ns2.example.net
@@ -71,11 +63,9 @@ class bind
   }
 
   # Data source for names and IP addresses.
-  $data_src = hiera('bind::data_src')
-  $data_name = hiera('bind::data_name')
-  $data_key = hiera('bind::data_key')
-
-  $bind_domains = hiera_hash('bind::domains')
+#  $data_src = hiera('bind::data_src')
+#  $data_name = hiera('bind::data_name')
+#  $data_key = hiera('bind::data_key')
 
   # Populate the zone files.
   $bind_zones = hiera('bind::zones')

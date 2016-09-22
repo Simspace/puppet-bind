@@ -25,10 +25,10 @@ define bind::ptr_cidr_zone (
 
   $cidr_ptr_zone = parsejson(dns_array($::bind::data_src, $::bind::data_name, $::bind::data_key, $query_zone))
 
-  file{ "/var/named/zone_${cidr_ptr}":
+  file{ "/var/cache/bind/zone_${cidr_ptr}":
     ensure  => present,
     owner   => root,
-    group   => named,
+    group   => bind,
     mode    => '0640',
     content => template('bind/ptr_cidr_zone_file.erb'),
     notify  => Exec["update_zone${cidr_ptr}"],
@@ -38,14 +38,14 @@ define bind::ptr_cidr_zone (
   exec{"update_zone${cidr_ptr}":
     refreshonly => true,
     path        => '/bin',
-    command     => "sed -e \"s/serialnumber/`date +%y%m%d%H%M`/g\" /var/named/zone_${cidr_ptr} > /var/named/zone_${cidr_ptr}.db",
+    command     => "sed -e \"s/serialnumber/`date +%y%m%d%H%M`/g\" /var/cache/bind/zone_${cidr_ptr} > /var/cache/bind/zone_${cidr_ptr}.db",
     notify      => Exec["zone_compile${cidr_ptr}"],
   }
 
   # Here the zone is compiled to verify good data
   exec{"zone_compile${cidr_ptr}":
     refreshonly => true,
-    command     => "/usr/sbin/named-compilezone -o /var/named/data/zone_${cidr_ptr} ${cidr_ptr} /var/named/zone_${cidr_ptr}.db",
+    command     => "/usr/sbin/named-compilezone -o /var/cache/bind/zone_${cidr_ptr} ${cidr_ptr} /var/cache/bind/zone_${cidr_ptr}.db",
     notify      => Exec['zone_reload'],
   }
 
