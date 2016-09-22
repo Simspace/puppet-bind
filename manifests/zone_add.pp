@@ -25,7 +25,6 @@ define bind::zone_add (
   $retry        = 3600,
   $expire       = 604800,
   $negresp      = 300,
-  $type         = undef,
   $data         = undef,
   $cidr         = 24,
   $nameservers  = undef,
